@@ -47,3 +47,38 @@ CREATE TABLE action(	player_name INT NOT NULL REFERENCES player_game(player_game
 			quantity VARCHAR(25) NOT NULL,
 			match_time VARCHAR(3) NOT NULL);
 ALTER TABLE action ADD PRIMARY KEY(player_name, action_type);
+
+DROP TABLE club_tournament;
+ALTER TABLE game DROP tournament_name;
+DROP TABLE tournament;
+
+CREATE TABLE league(	name VARCHAR(25) PRIMARY KEY,
+			country_name VARCHAR(25) REFERENCES country(name),
+			division INT);
+
+CREATE TABLE cup(	name VARCHAR(25) PRIMARY KEY,
+			country_name VARCHAR(25) REFERENCES country(name));
+
+CREATE TABLE stage_type(stage_id INT PRIMARY KEY,
+			stage VARCHAR(25));
+
+CREATE TABLE club_cup(	club_name VARCHAR(25) NOT NULL REFERENCES club(name),
+			cup_name VARCHAR(25) NOT NULL REFERENCES cup(name),
+			stage INT NOT NULL REFERENCES stage_type(stage_id));
+ALTER TABLE club_cup ADD PRIMARY KEY(club_name, cup_name);
+
+CREATE TABLE club_league(club_name VARCHAR(25) NOT NULL REFERENCES club(name),
+			league_name VARCHAR(25) NOT NULL REFERENCES league(name),
+			points INT,
+			place INT);
+ALTER TABLE club_league ADD PRIMARY KEY(club_name, league_name);
+
+ALTER TABLE game ADD cup_name VARCHAR(25) REFERENCES cup(name);
+ALTER TABLE game ADD league_name VARCHAR(25) REFERENCES league(name);
+
+CREATE TABLE transfer(	transfer_id INT NOT NULL PRIMARY KEY,
+			transfer_date DATE,
+			club_in_name VARCHAR(25) NOT NULL REFERENCES club(name),
+			club_out_name VARCHAR(25) NOT NULL REFERENCES club(name),
+			player_name VARCHAR(25) NOT NULL REFERENCES player(name),
+			price INT);
