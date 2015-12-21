@@ -1,0 +1,136 @@
+#¬ыборка всех данных из каждой таблицы
+CREATE VIEW Countries as SELECT * FROM country;
+CREATE VIEW Clubs as SELECT * FROM club;
+CREATE VIEW Leagues as SELECT * FROM league;
+CREATE VIEW Cups as SELECT * FROM cup;
+CREATE VIEW Stages as SELECT * FROM stage_type;
+CREATE VIEW Cup_Participants as SELECT * FROM club_cup;
+CREATE VIEW League_Participants as SELECT * FROM club_league;
+CREATE VIEW Transfers as SELECT * FROM transfer;
+CREATE VIEW Games as SELECT * FROM game;
+CREATE VIEW Players as SELECT * FROM player;
+CREATE VIEW Player_In_Games as SELECT * FROM player_game;
+CREATE VIEW Actions as SELECT * FROM action;
+
+#¬ыборка данных из одной таблицы при нескольких услови€х
+CREATE VIEW Barcelona_Salaries AS SELECT name, salary 
+FROM player 
+WHERE club_name = 'BarcelonaFC' 
+AND player.salary BETWEEN 0 AND 15000000;
+CREATE VIEW MLL_coaches AS SELECT name, coach 
+FROM club WHERE city IN ('Madrid', 'Liverpool', 'Lyon');
+CREATE VIEW LiverpoolFC_transfers AS SELECT player_name, price 
+FROM transfer WHERE club_in_name LIKE 'LiverpoolFC' 
+OR club_out_name LIKE 'LiverpoolFC';
+
+#¬ычисл€емое поле в запросе
+CREATE VIEW salary(salary) AS
+SELECT SUM(salary) FROM player WHERE player.club_name LIKE 'BarcelonaFC';
+
+#ѕример сортировки по нескольким пол€м
+CREATE VIEW club_cities(name, city) AS
+SELECT name, city FROM club ORDER BY city,name; 
+
+#¬ыборка данных из св€занных таблиц
+CREATE VIEW England_Players(name, salary, club) AS
+SELECT player.name, player.salary, club.name 
+FROM player, club 
+WHERE player.country_name 
+LIKE 'England' 
+AND player.club_name = club.name;
+
+CREATE VIEW Madrid(name, salary, club) AS 
+SELECT club_league.club_name, club_league.league_name, club.coach 
+FROM club_league,club 
+WHERE club.city = 'Madrid' 
+AND club_league.club_name = club.name;
+
+#»спользование группировки и наложение ограничени€ на результат группировки
+CREATE VIEW Big_Cities(city, number) AS
+SELECT club.city, COUNT(club.name) 
+FROM club GROUP BY club.city HAVING count(club.name)>1;
+
+#10 клубов, которые заработали наибольшее количество денег на трансферах за заданный период времени
+CREATE VIEW big10(Name, Summary) AS
+SELECT FIRST 10  club_out_name, SUM(price) 
+FROM transfer WHERE transfer_date BETWEEN '2013-01-01' AND '2015-12-12' 
+GROUP BY club_out_name ORDER by SUM(price) desc;
+
+#10 игроков наиболее успешных по какому-либо показателю
+CREATE VIEW best10players(name, goals) AS
+SELECT player_game.player_name, SUM(action.quantity) 
+FROM player_game, action 
+WHERE action.action_type = 1 AND action.player_name = player_game.player_game_id 
+GROUP BY player_game.player_name;
+
+# DML INSERT UPDATE DELETE
+set term ^;
+
+CREATE PROCEDURE insert_country ( n VARCHAR(25), rate INT)
+AS BEGIN
+	INSERT INTO country(name, rating) 
+	VALUES(:n, :rate);
+END^
+
+CREATE PROCEDURE insert_club ( name VARCHAR(25), coach VARCHAR(25), 
+				owner VARCHAR(25), site VARCHAR(25), 
+				city VARCHAR(25), country_name VARCHAR(25))
+AS BEGIN
+	INSERT INTO club(name, coach, owner, site, city, country_name) 
+	VALUES(:name, :coach, :owner, :site, :city, :country_name);
+END^
+
+CREATE PROCEDURE insert_league ( name VARCHAR(25), country VARCHAR(25), div INT)
+AS BEGIN
+	INSERT INTO league(name, country_name, division)
+	VALUES(:name, :country, :div);
+END^
+
+CREATE PROCEDURE insert_cup( name VARCHAR(25), country VARCHAR(25))
+AS BEGIN
+	INSERT INTO cup(name, country_name)
+	VALUES(:name, :country);
+END^
+
+CREATE PROCEDURE insert_transfer( t_id INT, t_date DATE, club_in VARCHAR(25),
+					club_out VARCHAR(25), player VARCHAR(25), price BIGINT)
+AS BEGIN
+	INSERT INTO transfer(transfer_id, transfer_date, club_in_name, club_out_name, player_name, price)
+	VALUES(:t_id, :t_date, :club_in, :club_out, :player, :price);
+END^
+
+CREATE PROCEDURE insert_game( id INT, club_home VARCHAR(25), club_guest VARCHAR(25),
+				goals_home INT, goals_guest INT, game_date DATE, cup VARCHAR(25), league VARCHAR(25))
+AS BEGIN
+	INSERT INTO game(game_id, club_home, club_guest, goals_home, goals_guest, game_date, cup_name, league_name)
+	VALUES(:id, :club_home, :club_guest, :goals_home, :goals_guest, :game_date, :cup, :league);
+END^
+
+set term ;^
+
+# — помощью оператора UPDATE измените значени€ нескольких полей у всех записей, отвечающих заданному условию
+CREATE PROCEDURE up_salary(club VARCHAR(25))
+AS BEGIN
+	UPDATE player SET salary = salary+10000 WHERE player.club_name = :club;
+END^
+
+# ”далить запись, имеющую максимальное(минимальное) значение некоторой совокупной характеристики
+CREATE PROCEDURE rem_player(club VARCHAR(25))
+AS BEGIN
+	DELETE FROM player WHERE club_name=:club 
+	AND salary = (SELECT MIN(salary) FROM player WHERE club_name=:club);
+END^
+
+# ”даление записей в главной таблице, на которые не ссылаетс€ подчиненна€ таблица
+CREATE PROCEDURE del_unused_country
+AS BEGIN
+	DELETE FROM country WHERE name NOT IN
+		(SELECT country_name FROM club UNION SELECT country_name FROM player);
+END^
+
+#”далить неиспользуемые типы футболистов
+CREATE PROCEDURE del_unused_types AS BEGIN
+DELETE from action_types WHERE action_id NOT IN 
+(SELECT action_types.action_id FROM action, action_types 
+WHERE action.action_type = action_types.action_id GROUP BY action_types.action_id);
+END^
