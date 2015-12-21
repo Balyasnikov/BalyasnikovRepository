@@ -1,0 +1,49 @@
+CREATE DATABASE 'D:\Study\Database\Last\football_base.fdb' user 'SYSDBA' password 'masterkey';
+commit;
+CONNECT 'D:\Study\Database\Last\football_base.fdb' user 'SYSDBA' password 'masterkey';
+
+CREATE TABLE country (	name VARCHAR(25) PRIMARY KEY,
+			rating INT);
+
+CREATE TABLE club(	name VARCHAR(25) PRIMARY KEY,
+			coach VARCHAR(25) NOT NULL,
+			owner VARCHAR(25) NOT NULL,
+			site VARCHAR(25),
+			city VARCHAR(25) NOT NULL,
+			country_name VARCHAR(25) REFERENCES country(name));
+
+CREATE TABLE tournament(name VARCHAR(25) PRIMARY KEY,
+			country_name VARCHAR(25) REFERENCES country(name));
+
+CREATE TABLE club_tournament(club_name VARCHAR(25) NOT NULL REFERENCES club(name),
+			tournament_name VARCHAR(25) NOT NULL REFERENCES tournament(name));
+ALTER TABLE club_tournament ADD PRIMARY KEY(club_name, tournament_name);
+
+CREATE TABLE game(	game_id INT PRIMARY KEY,
+			club_home VARCHAR(25) REFERENCES club(name),
+			club_guest VARCHAR(25) REFERENCES club(name),
+			goals_home INT,
+			goals_guest INT,
+			game_date DATE NOT NULL,
+			tournament_name VARCHAR(25) NOT NULL REFERENCES tournament(name));
+
+CREATE TABLE player(	name VARCHAR(25) PRIMARY KEY,
+			age INT NOT NULL,
+			salary BIGINT,
+			condition VARCHAR(25) NOT NULL,
+			player_position VARCHAR(25) NOT NULL,
+			player_number INT NOT NULL,
+			club_name VARCHAR(25) REFERENCES club(name),
+			country_name VARCHAR(25) REFERENCES country(name));
+
+CREATE TABLE player_game(player_game_id INT PRIMARY KEY,
+			player_name VARCHAR(25) REFERENCES player(name),
+			game_id INT REFERENCES game(game_id));
+
+CREATE TABLE action_types(action_id INT PRIMARY KEY,
+			action_type VARCHAR(25) NOT NULL);
+
+CREATE TABLE action(	player_name INT NOT NULL REFERENCES player_game(player_game_id),
+			action_type INT NOT NULL REFERENCES action_types(action_id),
+			quantity INT);
+ALTER TABLE action ADD PRIMARY KEY(player_name, action_type);
