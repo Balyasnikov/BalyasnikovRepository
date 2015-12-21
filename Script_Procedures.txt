@@ -1,0 +1,35 @@
+# Процедура обновления турнирной таблицы после очередного тура.
+# Пусть "тур" - это все матчи в определенной лиге между двумя датами.
+# Тогда процедура будет выглядеть следующим образом:
+
+CREATE OR ALTER PROCEDURE update_league(date_start DATE, date_end DATE, league VARCHAR(25))
+AS BEGIN
+
+UPDATE club_league c SET c.points = c.points+3 WHERE
+	c.league_name = :league AND
+	c.club_name IN (SELECT game.club_home FROM game WHERE game.club_home = c.club_name
+					AND game.goals_home>game.goals_guest AND
+					game.game_date BETWEEN :date_start AND :date_end);
+
+UPDATE club_league c SET c.points = c.points+1 WHERE
+	c.league_name = :league AND
+	c.club_name IN (SELECT game.club_home FROM game WHERE game.club_home = c.club_name
+					AND game.goals_home=game.goals_guest AND
+					game.game_date BETWEEN :date_start AND :date_end UNION
+			SELECT game.club_guest FROM game WHERE game.club_guest = c.club_name
+					AND game.goals_home=game.goals_guest AND
+					game.game_date BETWEEN :date_start AND :date_end);
+
+UPDATE club_league c SET c.points = c.points+3 WHERE
+	c.league_name = :league AND
+	c.club_name IN (SELECT game.club_guest FROM game WHERE game.club_guest = c.club_name
+					AND game.goals_home<game.goals_guest AND
+					game.game_date BETWEEN :date_start AND :date_end);
+
+END^
+
+# Расчёт суммарной зарплаты игроков по каждому клубу и вывод рейтинга
+
+CREATE VIEW players_salary_rating(Club, Sum_Salary)
+AS 
+SELECT club_name, SUM(salary) FROM player GROUP BY club_name ORDER BY SUM(salary) desc;
