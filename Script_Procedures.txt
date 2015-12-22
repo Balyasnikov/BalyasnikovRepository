@@ -30,6 +30,11 @@ END^
 
 # Расчёт суммарной зарплаты игроков по каждому клубу и вывод рейтинга
 
-CREATE VIEW players_salary_rating(Club, Sum_Salary)
-AS 
-SELECT club_name, SUM(salary) FROM player GROUP BY club_name ORDER BY SUM(salary) desc;
+CREATE PROCEDURE salary_rating
+RETURNS (club_name VARCHAR(25), sum_salary INT)
+AS BEGIN
+FOR SELECT club_name, SUM(salary) AS Sum_Salary FROM player GROUP BY club_name ORDER BY SUM(salary) desc 
+INTO :club_name, :sum_salary
+DO
+SUSPEND;
+END^
